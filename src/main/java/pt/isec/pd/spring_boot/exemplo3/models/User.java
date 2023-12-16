@@ -1,4 +1,4 @@
-package pt.isec.pd.spring_boot.manageDB.data;
+package pt.isec.pd.spring_boot.exemplo3.models;
 
 public class User {
     private String email;

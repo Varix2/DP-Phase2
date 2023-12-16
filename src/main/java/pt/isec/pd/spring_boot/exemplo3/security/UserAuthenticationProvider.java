@@ -7,8 +7,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+import pt.isec.pd.spring_boot.exemplo3.models.User;
 import pt.isec.pd.spring_boot.manageDB.DbOperations;
-import pt.isec.pd.spring_boot.manageDB.data.User;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +19,8 @@ public class UserAuthenticationProvider implements AuthenticationProvider
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException
     {
-        DbOperations db = new DbOperations();
+        DbOperations db = DbOperations.getInstance();
+
         String username = authentication.getName();
         String password = authentication.getCredentials().toString();
 

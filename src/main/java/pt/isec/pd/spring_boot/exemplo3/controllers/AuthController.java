@@ -22,10 +22,5 @@ public class AuthController
     {
         return tokenService.generateToken(authentication);
     }
-    @GetMapping("/login")
-    public String login()
-    {
 
-        return "TESTING LOGIN";
-    }
 }

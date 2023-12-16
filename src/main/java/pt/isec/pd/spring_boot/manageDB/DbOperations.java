@@ -20,8 +20,14 @@ import java.util.List;
 
 public class DbOperations {
     private static String dbUrl ="C:\\sqlite\\db\\PD-database.db";
-    public DbOperations() {
-
+    private static DbOperations db;
+    private DbOperations() {
+    }
+    public static DbOperations getInstance(){
+        if(db == null){
+            db = new DbOperations();
+        }
+        return db;
     }
 
 
@@ -43,7 +49,6 @@ public class DbOperations {
                     System.out.println("Insertion failed.");
                 }
             }
-            updateVersion();
         } catch (SQLException e) {
             System.out.println("Exception reported:\r\n\t..." + e.getMessage());
        }
@@ -640,6 +645,42 @@ public class DbOperations {
             throw new RuntimeException(e);
         }
     }
+
+    public synchronized boolean existUser(String email) {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection connection = DriverManager.getConnection(dbAddress)) {
+            String searchUserQuery = "SELECT * FROM Users WHERE email = ?";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(searchUserQuery)) {
+                preparedStatement.setString(1, email);
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    return resultSet.next();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+    public synchronized void addUser(String email, String password) {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection connection = DriverManager.getConnection(dbAddress)) {
+            String addUserQuery = "INSERT INTO Users (email, password) VALUES (?, ?)";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(addUserQuery)) {
+                preparedStatement.setString(1, email);
+                preparedStatement.setString(2, password);
+
+                preparedStatement.executeUpdate();
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
 }
