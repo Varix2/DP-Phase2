@@ -1,18 +1,12 @@
 package pt.isec.pd.spring_boot.manageDB;
 
 
-import org.springframework.stereotype.Component;
-import pt.isec.pd.spring_boot.manageDB.data.Attendance;
-import pt.isec.pd.spring_boot.manageDB.data.Event;
+import pt.isec.pd.spring_boot.exemplo3.models.Attendance;
+import pt.isec.pd.spring_boot.exemplo3.models.Event;
 
-import java.net.MalformedURLException;
-import java.rmi.Naming;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,22 +102,19 @@ public class DbOperations {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         List<Event> events = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
-            String selectEventsQuery = "SELECT Events.*, COUNT(Attendance.idGuest) as AttendeesNumber " +
-                    "FROM Events " +
-                    "LEFT JOIN Attendance ON Events.id = Attendance.idEvent " +
-                    "GROUP BY Events.id";
+            String selectEventsQuery = "SELECT * " +
+                    "FROM Events ";
             try (PreparedStatement pstmt = conn.prepareStatement(selectEventsQuery)) {
                 ResultSet resultSet = pstmt.executeQuery();
 
                 while(resultSet.next()) {
-                    int id = resultSet.getInt("id");
+
                     String name = resultSet.getString("name");
                     String location = resultSet.getString("location");
                     String date = resultSet.getString("date");
                     String startTime = resultSet.getString("startTime");
                     String endTime = resultSet.getString("endTime");
-                    int numAttendees = resultSet.getInt("AttendeesNumber");
-                    events.add(new Event(id, name, location, numAttendees,date, startTime, endTime));
+                    events.add(new Event(name, location,date, startTime, endTime));
                 }
             }
         } catch (SQLException e) {
@@ -215,14 +206,13 @@ public class DbOperations {
                         ResultSet eventsResultSet = selectUserEventsStmt.executeQuery();
 
                         while (eventsResultSet.next()) {
-                            int id = eventsResultSet.getInt("id");
+
                             String name = eventsResultSet.getString("name");
                             String location = eventsResultSet.getString("location");
                             String date = eventsResultSet.getString("date");
                             String startTime = eventsResultSet.getString("startTime");
                             String endTime = eventsResultSet.getString("endTime");
-                            int numAttendees = eventsResultSet.getInt("AttendeesNumber");
-                            userEvents.add(new Event(id, name, location, numAttendees, date, startTime, endTime));
+                            userEvents.add(new Event(name, location,date, startTime, endTime));
                         }
                     }
         } catch (SQLException e) {
@@ -282,7 +272,7 @@ public class DbOperations {
 
 
     //@Override
-    public synchronized void deleteEvent(int eventId) throws RemoteException {
+    public synchronized void deleteEvent(int eventId) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection connection = DriverManager.getConnection(dbAddress)) {
@@ -298,7 +288,6 @@ public class DbOperations {
                     int rowsAffected = preparedStatement.executeUpdate();
                     if (rowsAffected > 0) {
                         System.out.println("Event remove");
-                        //serverService.pruebaRMI(new Heardbeat(rmiPort,RMIname,getDbVersion()),"EVENT ELIMINATED");
                     } else {
                         System.out.println("Event not found to remove.");
                     }
@@ -306,7 +295,6 @@ public class DbOperations {
             } else {
                 System.out.println("Event can not be removed. Attendees already registered.");
             }
-        updateVersion();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -434,7 +422,7 @@ public class DbOperations {
                             String emailFromAttendance = attendanceResultSet.getString("email");
                             String eventName = attendanceResultSet.getString("eventName");
                             String location = attendanceResultSet.getString("location");
-                            LocalDate date = LocalDate.parse(attendanceResultSet.getString("date"), dateFormatter);
+                            String date = attendanceResultSet.getString("date");
                             String startTime = attendanceResultSet.getString("startTime");
                             String endTime = attendanceResultSet.getString("endTime");
 
@@ -449,11 +437,10 @@ public class DbOperations {
     }
 
 
-    public synchronized List<Attendance> getEventAttendance(int eventId) throws RemoteException {
+    public synchronized List<Attendance> getEventAttendance(int eventId){
         List<Attendance> attendanceList = new ArrayList<>();
 
         String dbAddress = "jdbc:sqlite:" + dbUrl;
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
             String selectAttendanceQuery = "SELECT Users.name AS userName, Users.email, " +
@@ -472,7 +459,7 @@ public class DbOperations {
                     String email = attendanceResultSet.getString("email");
                     String eventName = attendanceResultSet.getString("eventName");
                     String location = attendanceResultSet.getString("location");
-                    LocalDate date = LocalDate.parse(attendanceResultSet.getString("date"), dateFormatter);
+                    String date = attendanceResultSet.getString("date");
                     String startTime = attendanceResultSet.getString("startTime");
                     String endTime = attendanceResultSet.getString("endTime");
 
@@ -498,14 +485,14 @@ public class DbOperations {
                 ResultSet eventResultSet = selectEventStmt.executeQuery();
 
                 if (eventResultSet.next()) {
-                    int id = eventResultSet.getInt("id");
+
                     String name = eventResultSet.getString("name");
                     String location = eventResultSet.getString("location");
                     String date = eventResultSet.getString("date");
                     String startTime = eventResultSet.getString("startTime");
                     String endTime = eventResultSet.getString("endTime");
 
-                    return new Event(id, name, location, date, startTime, endTime);
+                    return new Event(name, location, date, startTime, endTime);
                 }
             }
         } catch (SQLException e) {
@@ -594,7 +581,7 @@ public class DbOperations {
     }
 
 
-    public synchronized void createEvent(String name, String location, LocalDate date, String startTime, String endTime) throws RemoteException {
+    public synchronized void createEvent(String name, String location, String date, String startTime, String endTime){
         String dbAddress = "jdbc:sqlite:" + dbUrl;
 
         try (Connection connection = DriverManager.getConnection(dbAddress)) {
@@ -606,9 +593,9 @@ public class DbOperations {
 
                 preparedStatement.setString(1, name);
                 preparedStatement.setString(2, location);
-                preparedStatement.setString(3, date.format(dateFormatter));
-                preparedStatement.setString(4, LocalTime.parse(startTime, timeFormatter).format(timeFormatter));
-                preparedStatement.setString(5, LocalTime.parse(endTime, timeFormatter).format(timeFormatter));
+                preparedStatement.setString(3, date);
+                preparedStatement.setString(4, startTime);
+                preparedStatement.setString(5, endTime);
 
                 preparedStatement.executeUpdate();
             }

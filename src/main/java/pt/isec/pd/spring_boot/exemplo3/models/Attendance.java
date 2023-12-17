@@ -1,22 +1,19 @@
-package pt.isec.pd.spring_boot.manageDB.data;
+package pt.isec.pd.spring_boot.exemplo3.models;
 
-import java.io.Serializable;
 import java.time.LocalDate;
 
-public class Attendance implements Serializable {
+public class Attendance{
     private String userName;
-    private int userId;
     private String email;
     private String eventName;
     private String location;
-    private LocalDate date;
+    private String date;
     private String startTime;
     private String endTime;
 
     // Constructor
-    public Attendance(String userName, /*int userId,*/ String email, String eventName, String location, LocalDate date, String startTime, String endTime) {
+    public Attendance(String userName,String email, String eventName, String location, String date, String startTime, String endTime) {
         this.userName = userName;
-        //this.userId = userId;
         this.email = email;
         this.eventName = eventName;
         this.location = location;
@@ -26,9 +23,8 @@ public class Attendance implements Serializable {
     }
 
     // Constructor
-    public Attendance(String userName, /*int userId,*/ String email) {
+    public Attendance(String userName, String email) {
         this.userName = userName;
-        this.userId = userId;
         this.email = email;
     }
 
@@ -37,9 +33,6 @@ public class Attendance implements Serializable {
         return userName;
     }
 
-    public int getUserId() {
-        return userId;
-    }
 
     public String getEmail() {
         return email;
@@ -53,7 +46,7 @@ public class Attendance implements Serializable {
         return location;
     }
 
-    public LocalDate getDate() {
+    public String getDate() {
         return date;
     }
 
@@ -63,5 +56,10 @@ public class Attendance implements Serializable {
 
     public String getEndTime() {
         return endTime;
+    }
+
+    public String toString() {
+        return String.format("%-10s%-15s\n",userName, email) +
+                "---------------------------------------------------------------------------------";
     }
 }
