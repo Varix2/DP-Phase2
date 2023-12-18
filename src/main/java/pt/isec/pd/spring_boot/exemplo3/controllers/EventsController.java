@@ -91,8 +91,8 @@ public class EventsController {
     ){
         DbOperations db = DbOperations.getInstance();
         if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("SCOPE_ADMIN"))) {
-            // db.generateCode(event);
-            return new ResponseEntity<>("Code generate successfully", HttpStatus.OK);
+            String code = db.generateAttendanceCode(event);
+            return new ResponseEntity<>(code, HttpStatus.OK);
         }
         return new ResponseEntity<>("User not authorized", HttpStatus.UNAUTHORIZED);
     }
@@ -100,13 +100,13 @@ public class EventsController {
     @PostMapping("submitCode")
     public ResponseEntity<?> submitCode(
             Authentication auth,
-            @RequestParam(value="code") int code,
-            @RequestParam(value="event") String event
+            @RequestParam(value="code") String code,
+            @RequestParam(value="event") int event
     ){
         DbOperations db = DbOperations.getInstance();
         if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("SCOPE_CLIENT"))) {
             String userEmail = auth.getName();
-            //db.submitCode(code,userEmail,event);
+            db.addUserToEvent(event,userEmail,code);
             return new ResponseEntity<>("User enroll successfully", HttpStatus.OK);
         }
         return new ResponseEntity<>("User not authorized", HttpStatus.UNAUTHORIZED);

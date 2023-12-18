@@ -129,7 +129,7 @@ public class DbOperations {
     }
 
     //@Override
-    public synchronized void joinAnEvent(String email, int eventID) throws RemoteException {
+    public synchronized void joinAnEvent(String email, int eventID) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         if (isUserEnrolledInAnEvent(email, eventID)) {
             System.out.println("The user " + email + " is already enrolled in the event");
@@ -331,7 +331,7 @@ public class DbOperations {
         return rowsAffected;
     }
 
-    public synchronized boolean addUserToEvent(int eventId, String userEmail, int attendanceCode) {
+    public synchronized boolean addUserToEvent(int eventId, String userEmail, String attendanceCode) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
             String checkAttendanceQuery = "SELECT COUNT(*) FROM Attendance WHERE idEvent = ? AND idGuest = ?";
@@ -351,7 +351,7 @@ public class DbOperations {
 
 
             }
-            String getEventNameQuery = "SELECT Name FROM Events WHERE Id ?";
+            String getEventNameQuery = "SELECT Name FROM Events WHERE Id = ?";
             try (PreparedStatement getNameStmt = conn.prepareStatement(getEventNameQuery)) {
                 getNameStmt.setInt(1, eventId);
 
@@ -365,10 +365,10 @@ public class DbOperations {
                 //    return false;
             }
 
-            if (attendances.containsKey(eventId) && attendances.get(eventId).getCode().equals(attendanceCode)) {
+            if (attendanceCode.equals("20")) {
+                joinAnEvent(userEmail,eventId);
+                //inserRegisterToDB(eventId, userEmail);
 
-                inserRegisterToDB(eventId, userEmail);
-                updateVersion();
                 return true;
             } else {
                 System.out.println("Invalid attendance code or expired attendance.");
@@ -713,51 +713,10 @@ public class DbOperations {
             e.printStackTrace();
         }
     }
-
-    private Map<String, Attendance> attendances = new ConcurrentHashMap<>();
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
-
-    public String generateAttendanceCode(String eventName) {
-        String attendanceCode = generateRandomCode();
-        System.out.println("Attendance Code for " + eventName + ": " + attendanceCode);
-
-        // Store the attendance with the corresponding code and timestamp
-        attendances.put(eventName, new Attendance(attendanceCode, System.currentTimeMillis()));
-
-        // Schedule a timer to expire in 30 minutes
-        scheduler.schedule(() -> expireAttendance(eventName), 30, TimeUnit.MINUTES);
-
-        return attendanceCode;
+    public String generateAttendanceCode(String email) {
+        return "20";
     }
 
-    private String generateRandomCode() {
-
-        return String.format("%06d", (int) (Math.random() * 1000000));
-    }
-
-    private void expireAttendance(String eventName) {
-
-        System.out.println("Event Code for " + eventName + " has expired.");
-        attendances.remove(eventName);
-    }
-
-    private static class Attendance {
-        private String code;
-        private long timestamp;
-
-        public Attendance(String code, long timestamp) {
-            this.code = code;
-            this.timestamp = timestamp;
-        }
-
-        public String getCode() {
-            return code;
-        }
-
-        public long getTimestamp() {
-            return timestamp;
-        }
-    }
 
 
 

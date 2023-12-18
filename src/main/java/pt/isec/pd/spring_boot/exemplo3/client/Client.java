@@ -283,6 +283,72 @@ public class Client {
         }
     }
 
+    public static void createEventCode(String uri, String authorizationValue) throws IOException {
+        URL url = new URL(uri);
+        String responseBody = null;
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Accept", "application/xml, */*");
+
+        if (authorizationValue != null) {
+            connection.setRequestProperty("Authorization", authorizationValue);
+        }
+
+        connection.connect();
+
+        int responseCode = connection.getResponseCode();
+        System.out.println("Response code: " + responseCode + " (" + connection.getResponseMessage() + ")");
+        if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+            System.err.println("Authentication failed");
+        } else{
+            connection.disconnect();
+
+            System.out.println("POST" + " " + uri );
+            System.out.println();
+
+        }
+    }
+
+    private static void submitCode(String uri, String authorizationValue) throws IOException {
+        URL url = new URL(uri);
+        String responseBody = null;
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Accept", "application/xml, */*");
+
+        if (authorizationValue != null) {
+            connection.setRequestProperty("Authorization", authorizationValue);
+        }
+
+        connection.connect();
+
+        int responseCode = connection.getResponseCode();
+        System.out.println("Response code: " + responseCode + " (" + connection.getResponseMessage() + ")");
+        if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+            System.err.println("Authentication failed");
+        } else{
+            Scanner s;
+
+            if (connection.getErrorStream() != null) {
+                s = new Scanner(connection.getErrorStream()).useDelimiter("\\A");
+                responseBody = s.hasNext() ? s.next() : null;
+            }
+
+            try {
+                s = new Scanner(connection.getInputStream()).useDelimiter("\\A");
+                responseBody = s.hasNext() ? s.next() : null;
+            } catch (IOException e) {
+            }
+
+            connection.disconnect();
+
+            System.out.println("POST" + " " + uri + " ==> " + responseBody);
+            System.out.println();
+
+        }
+    }
+
+
     public static void main(String args[]) throws MalformedURLException, IOException {
 
         String loginUri = "http://localhost:8080/login";
@@ -309,7 +375,7 @@ public class Client {
         getAllEvents(allEventsUri, "bearer " + adminToken);
 
         System.out.println("Create an event");
-        String newEvent = "{\"name\":\"Nuevo Evento\",\"location\":\"Ubicación Nueva\",\"date\":\"2023-12-31\",\"startTime\":\"12:00\",\"endTime\":\"3:00\"}";
+        String newEvent = "{\"name\":\"New Event3\",\"location\":\"New location3\",\"date\":\"2023-12-31\",\"startTime\":\"12:00\",\"endTime\":\"3:00\"}";
         createEvent(createEventUri,"bearer " + adminToken,newEvent);
 
         System.out.println("Consult event attendance");
@@ -321,12 +387,28 @@ public class Client {
         System.out.println("User login");
         String clientCredentials = Base64.getEncoder().encodeToString("email3:1".getBytes());
         String clientToken = sendRequestAndShowResponse(loginUri, "POST", "basic " + clientCredentials, null);
+
+        System.out.println();
+        System.out.println("Create event code");
+        createEventCode(createEventCodeUri+"?event=newEvent1","bearer " + adminToken);
+
+        System.out.println("User enroll at an event");
+        submitCode(submitCodeUri + "?code=20&event=14", "bearer " + clientToken);
+
         System.out.println("User attendance");
         consultAttendance(consultAttendanceUri,"bearer " + clientToken);
 
+        System.out.println();
+        System.out.println("Get all the events");
+        getAllEvents(allEventsUri, "bearer " + adminToken);
+
+
+
+
+
+
 
     }
-
 
 
 
