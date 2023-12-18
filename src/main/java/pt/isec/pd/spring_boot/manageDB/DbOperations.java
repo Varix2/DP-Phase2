@@ -10,6 +10,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.*;
+
+import static java.lang.System.currentTimeMillis;
+import static javax.swing.UIManager.get;
 
 
 public class DbOperations {
@@ -159,7 +164,7 @@ public class DbOperations {
 
             checkEnrollmentStmt.setString(1, email);
             // Get current datetime
-            Timestamp currentTimestamp = new Timestamp(System.currentTimeMillis());
+            Timestamp currentTimestamp = new Timestamp(currentTimeMillis());
             checkEnrollmentStmt.setTimestamp(2, currentTimestamp);
 
             try (ResultSet resultSet = checkEnrollmentStmt.executeQuery()) {
@@ -300,6 +305,8 @@ public class DbOperations {
         }
     }
 
+
+
     public synchronized int deleteUserFromEvent(int eventId, String userEmail) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         int rowsAffected = 0;
@@ -324,7 +331,7 @@ public class DbOperations {
         return rowsAffected;
     }
 
-    public synchronized boolean addUserToEvent(int eventId, String userEmail) {
+    public synchronized boolean addUserToEvent(int eventId, String userEmail, int attendanceCode) {
         String dbAddress = "jdbc:sqlite:" + dbUrl;
         try (Connection conn = DriverManager.getConnection(dbAddress)) {
             String checkAttendanceQuery = "SELECT COUNT(*) FROM Attendance WHERE idEvent = ? AND idGuest = ?";
@@ -341,10 +348,48 @@ public class DbOperations {
                     System.out.println("User is already registered for the event.");
                     return false;
                 }
+
+
+            }
+            String getEventNameQuery = "SELECT Name FROM Events WHERE Id ?";
+            try (PreparedStatement getNameStmt = conn.prepareStatement(getEventNameQuery)) {
+                getNameStmt.setInt(1, eventId);
+
+                ResultSet resultSet = getNameStmt.executeQuery();
+                resultSet.next();
+
+                String eventName = resultSet.getString(1);
+
+                //if (eventName.isEmpty()) {
+                //    System.out.println("There is no event with this id.");
+                //    return false;
             }
 
+            if (attendances.containsKey(eventId) && attendances.get(eventId).getCode().equals(attendanceCode)) {
+
+                inserRegisterToDB(eventId, userEmail);
+                updateVersion();
+                return true;
+            } else {
+                System.out.println("Invalid attendance code or expired attendance.");
+                return false;
+            }
+
+
+            //updateVersion();
+        } catch (SQLException e) {
+            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+        }
+        return true;
+    }
+
+    private void inserRegisterToDB(int eventId, String userEmail) {
+        String dbAddress = "jdbc:sqlite:" + dbUrl;
+
+        try (Connection connection = DriverManager.getConnection(dbAddress)){
+
             String addAttendanceQuery = "INSERT INTO Attendance (idEvent, idGuest) VALUES (?, ?)";
-            try (PreparedStatement addAttendanceStmt = conn.prepareStatement(addAttendanceQuery)) {
+            try (PreparedStatement addAttendanceStmt = connection.prepareStatement(addAttendanceQuery)) {
                 addAttendanceStmt.setInt(1, eventId);
                 addAttendanceStmt.setString(2, userEmail);
 
@@ -354,14 +399,15 @@ public class DbOperations {
                     System.out.println("User added to the event successfully.");
                 } else {
                     System.out.println("Failed to add user to the event.");
-                    return false;
+
                 }
             }
-            updateVersion();
+            System.out.println("Registration successful for user with email " + userEmail);
+
         } catch (SQLException e) {
-            System.out.println("Exception reported:\r\n\t..." + e.getMessage());
+            throw new RuntimeException(e);
         }
-        return true;
+
     }
 
 
@@ -667,6 +713,53 @@ public class DbOperations {
             e.printStackTrace();
         }
     }
+
+    private Map<String, Attendance> attendances = new ConcurrentHashMap<>();
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
+
+    public String generateAttendanceCode(String eventName) {
+        String attendanceCode = generateRandomCode();
+        System.out.println("Attendance Code for " + eventName + ": " + attendanceCode);
+
+        // Store the attendance with the corresponding code and timestamp
+        attendances.put(eventName, new Attendance(attendanceCode, System.currentTimeMillis()));
+
+        // Schedule a timer to expire in 30 minutes
+        scheduler.schedule(() -> expireAttendance(eventName), 30, TimeUnit.MINUTES);
+
+        return attendanceCode;
+    }
+
+    private String generateRandomCode() {
+
+        return String.format("%06d", (int) (Math.random() * 1000000));
+    }
+
+    private void expireAttendance(String eventName) {
+
+        System.out.println("Event Code for " + eventName + " has expired.");
+        attendances.remove(eventName);
+    }
+
+    private static class Attendance {
+        private String code;
+        private long timestamp;
+
+        public Attendance(String code, long timestamp) {
+            this.code = code;
+            this.timestamp = timestamp;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+    }
+
+
 
 
 
